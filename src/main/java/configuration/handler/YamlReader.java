@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
+import java.util.Objects;
 
 @Getter
 @Slf4j
@@ -26,21 +26,14 @@ public class YamlReader {
         return INSTANCE;
     }
 
-    private void loadData() {
-        String configFileName = "configFile.yaml";
+    public void loadData() {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        URL resource = classLoader.getResource(configFileName);
-        if (resource == null) {
-            log.error("Configuration file {} not found in classpath", configFileName);
-            return;
-        }
-        File file = new File(resource.getFile());
-        ObjectMapper om = new ObjectMapper(new YAMLFactory());
+        File file = new File(Objects.requireNonNull(classLoader.getResource("configFile.yaml")).getFile());
+        final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try {
-            this.yamlModel = om.readValue(file, YamlModel.class);
-            log.info("Configuration successfully loaded from {}", file.getPath());
+            this.yamlModel = mapper.readValue(file, YamlModel.class);
         } catch (IOException e) {
-            log.error("Error during loading data from {}", file.getPath(), e);
+            e.printStackTrace();
         }
     }
 }

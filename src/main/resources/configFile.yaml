@@ -1,18 +1,34 @@
-browser: EDGE
-environment: stage
+#available browsers: CHROME, FIREFOX, IE, EDGE
+#available environments: test, stage, prod
+environment: test
+
+browserSettings:
+  browserName: edge
+  browserHeadless: false
+  maximizeWindow: false
+
 
 environments:
   test:
     envName: test
     appUrl: https://www.selenium.dev/
     expectedTitle: Selenium
+    expectedNumber: 1
+    expectedBoolean: true
+    browserImplicitTimeout: 3
 
   stage:
     envName: stage
     appUrl: https://playwright.dev/
     expectedTitle: Fast and reliable end-to-end testing for modern web apps | Playwright
+    expectedNumber: 1
+    expectedBoolean: true
+    browserImplicitTimeout: 10
 
   prod:
     envName: prod
     appUrl: https://www.cypress.io/
     expectedTitle: JavaScript Component Testing and E2E Testing Framework | Cypress
+    expectedNumber: 1
+    expectedBoolean: true
+    browserImplicitTimeout: 4

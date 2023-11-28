@@ -11,5 +11,7 @@ public class TitleTest extends TestBase {
     public void shouldGetCorrectTitleTest() {
         String title = driver.getTitle();
         assertThat(title).isEqualTo(getFromEnv("expectedTitle"));
+        assertThat(true).isEqualTo(getFromEnv("expectedBoolean"));
+        assertThat(1).isEqualTo(getFromEnv("expectedNumber"));
     }
 }

@@ -13,19 +13,34 @@ public class EnvironmentModel {
 
     @JsonAnyGetter
     @JsonAnySetter
-    private HashMap<String, Object> propertiesMap = new HashMap<>();
+    private HashMap<String, Object> environmentPropertiesMap = new HashMap<>();
 
     public EnvironmentModel() {
     }
 
     public EnvironmentModel(HashMap<String, Object> propertiesMap) {
-        this.propertiesMap = propertiesMap;
+        this.environmentPropertiesMap = propertiesMap;
     }
 
     public String getValueAsString(String key) {
-        if (this.propertiesMap.containsKey(key))
-            return this.propertiesMap.get(key).toString();
-        log.error("Can't find {} in config file", key);
-        return null;
+        if (!this.environmentPropertiesMap.containsKey(key)){
+            log.error("Can't find {} in config file", key);
+            return null;
+        }
+        return this.environmentPropertiesMap.get(key).toString();
+    }
+    public Integer getValueAsInt(String key) {
+        if (!this.environmentPropertiesMap.containsKey(key)){
+            log.error("Can't find {} in config file", key);
+            return null;
+        }
+        return (Integer) this.environmentPropertiesMap.get(key);
+    }
+    public Object getValue(String key) {
+        if (!this.environmentPropertiesMap.containsKey(key)){
+            log.error("Can't find {} in config file", key);
+            return null;
+        }
+        return this.environmentPropertiesMap.get(key);
     }
 }
