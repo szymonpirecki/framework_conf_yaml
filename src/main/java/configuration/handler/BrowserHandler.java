@@ -1,8 +1,6 @@
 package configuration.handler;
 
-import configuration.enums.BrowserSetting;
-import configuration.model.BrowserModel;
-import configuration.model.EnvironmentModel;
+import configuration.model.YamlModel;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.MutableCapabilities;
@@ -16,7 +14,7 @@ import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.ie.InternetExplorerDriver;
 import org.openqa.selenium.ie.InternetExplorerOptions;
 
-import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -26,20 +24,33 @@ public class BrowserHandler {
     private int browserImplicitTimeout = 1;
     private boolean maximizeWindow = false;
 
-    private final BrowserModel browserSettings;
-    private final EnvironmentModel environmentProperties;
 
-
-    public BrowserHandler(BrowserModel browserModelObj, EnvironmentModel environmentModelObj) {
-        this.browserSettings = browserModelObj;
-        this.environmentProperties = environmentModelObj;
+    public static void setBrowserProperties() {
+        log.info("Setting browser properties...");
+        YamlModel yamlModel = YamlReader.getInstance().getYamlModel();
+        Map<String, Object> browserSettingsMap = yamlModel.getBrowserSettings();
+        for (Map.Entry<String, Object> entry : browserSettingsMap.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            if (value instanceof String) {
+                System.setProperty(key, (String) value);
+            } else if (value instanceof Boolean) {
+                System.setProperty(key, Boolean.toString((Boolean) value));
+            } else if (value instanceof Number) {
+                System.setProperty(key, value.toString());
+            } else if (value != null) {
+                System.setProperty(key, value.toString());
+            }
+            log.info("{}:{} set", key,value);
+        }
+        log.info("Browser properties set.");
     }
 
     public WebDriver initDriver() {
         adjustBrowserSettings();
         WebDriver driver = null;
+        log.info("Initializing driver with browserName: {}", this.browserName);
         switch (this.browserName.toLowerCase()) {
-            case "chrome" -> driver = getChromedriver();
             case "edge" -> driver = getEdgeDriver();
             case "ie" -> driver = getIeDriver();
             case "firefox" -> driver = getFirefoxDriver();
@@ -47,79 +58,68 @@ public class BrowserHandler {
         }
         if (this.maximizeWindow)
             driver.manage().window().maximize();
+        setDriversImplicitTimeout(driver);
         log.info("Driver initialized - Chosen browser: {}", this.browserName);
         return driver;
     }
 
+
     private void adjustBrowserSettings() {
-        HashMap<String, Object> browserSettingsMap = browserSettings.getBrowserSettingsMap();
-        HashMap<String, Object> environmentPropertiesMap = environmentProperties.getEnvironmentPropertiesMap();
+        log.debug("Adjusting browser settings...");
+        browserImplicitTimeout = isSpecified("browserImplicitTimeout") ?
+                Integer.parseInt(System.getProperty("browserImplicitTimeout")) : this.browserImplicitTimeout;
 
-        browserImplicitTimeout = isSpecified(environmentPropertiesMap, BrowserSetting.BROWSER_IMPLICIT_TIMEOUT.getSettingKey()) ?
-                environmentProperties.getValueAsInt(BrowserSetting.BROWSER_IMPLICIT_TIMEOUT.getSettingKey()) : browserImplicitTimeout;
+        browserName = isSpecified("browserName") ?
+                System.getProperty("browserName") : this.browserName;
 
-        browserName = isSpecified(browserSettingsMap, BrowserSetting.BROWSER_NAME.getSettingKey()) ?
-                browserSettings.getValueAsString(BrowserSetting.BROWSER_NAME.getSettingKey()) : browserName;
+        browserHeadless = isSpecified("browserHeadless") ?
+                Boolean.parseBoolean(System.getProperty("browserHeadless")) : this.browserHeadless;
 
-        browserHeadless = isSpecified(browserSettingsMap, BrowserSetting.BROWSER_HEADLESS.getSettingKey()) ?
-                browserSettings.getValueAsBoolean(BrowserSetting.BROWSER_HEADLESS.getSettingKey()) : browserHeadless;
-
-        maximizeWindow = isSpecified(browserSettingsMap, BrowserSetting.MAXIMIZE_WINDOW.getSettingKey()) ?
-                browserSettings.getValueAsBoolean(BrowserSetting.MAXIMIZE_WINDOW.getSettingKey()) : maximizeWindow;
+        maximizeWindow = isSpecified("maximizeWindow") ?
+                Boolean.parseBoolean(System.getProperty("maximizeWindow")) : this.maximizeWindow;
+        log.debug("Browser settings adjusted.");
     }
 
-    private boolean isSpecified(HashMap<String, Object> settingsMap, String setting) {
-        if (settingsMap.containsKey(setting))
-            return settingsMap.get(setting) != null;
-        return false;
+    private boolean isSpecified(String setting) {
+        return (System.getProperty(setting) != null);
     }
 
-
-    private void configureDriverOptions(MutableCapabilities options) {
-        if (this.browserHeadless) {
-            options.setCapability("headless", true);
-        }
+    private void setHeadlessOption(MutableCapabilities options) {
+        log.debug("Setting headless option to {}", this.browserHeadless);
+        if (this.browserHeadless) options.setCapability("headless", true);
     }
-
 
     private void setDriversImplicitTimeout(WebDriver driver) {
+        log.debug("Setting driver's implicit timeout to {} seconds", this.browserImplicitTimeout);
         driver.manage().timeouts().implicitlyWait(this.browserImplicitTimeout, TimeUnit.SECONDS);
     }
 
     private WebDriver getFirefoxDriver() {
         WebDriverManager.firefoxdriver().setup();
         FirefoxOptions options = new FirefoxOptions();
-        configureDriverOptions(options);
-        FirefoxDriver driver = new FirefoxDriver(options);
-        setDriversImplicitTimeout(driver);
-        return driver;
+        setHeadlessOption(options);
+        return new FirefoxDriver(options);
     }
 
 
     private WebDriver getIeDriver() {
         WebDriverManager.iedriver().setup();
         InternetExplorerOptions options = new InternetExplorerOptions();
-        configureDriverOptions(options);
-        InternetExplorerDriver driver = new InternetExplorerDriver(options);
-        setDriversImplicitTimeout(driver);
-        return driver;
+        setHeadlessOption(options);
+        return new InternetExplorerDriver(options);
     }
 
     private WebDriver getEdgeDriver() {
         WebDriverManager.edgedriver().setup();
         EdgeOptions options = new EdgeOptions();
-        configureDriverOptions(options);
-        EdgeDriver driver = new EdgeDriver(options);
-        setDriversImplicitTimeout(driver);
-        return driver;
+        setHeadlessOption(options);
+        return new EdgeDriver(options);
     }
 
     private WebDriver getChromedriver() {
         WebDriverManager.chromedriver().setup();
         ChromeOptions options = new ChromeOptions();
-        configureDriverOptions(options);
-        ChromeDriver driver = new ChromeDriver(options);
-        setDriversImplicitTimeout(driver);
-        return driver;
+        setHeadlessOption(options);
+        return new ChromeDriver(options);
     }
 }

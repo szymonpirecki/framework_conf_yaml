@@ -1,11 +1,11 @@
 #available browsers: CHROME, FIREFOX, IE, EDGE
 #available environments: test, stage, prod
-environment: test
+environment: stage
 
 browserSettings:
-  browserName: edge
+  browserName: chrome
   browserHeadless: false
-  maximizeWindow: false
+  maximizeWindow: true
 
 
 environments:
